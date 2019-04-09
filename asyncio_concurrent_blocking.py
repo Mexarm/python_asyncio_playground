@@ -3,18 +3,20 @@ from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 import os
 import time
 
+import requests
+
 
 def blocking(n):
     print(f'im blocking things !!! {n} pid={os.getpid()}')
-    time.sleep(1)
+    resp = requests.get('https://postman-echo.com/delay/3')
     print(f'ok done {n} pid={os.getpid()}')
-    return (n, n**2)
+    return resp
 
 
 async def run_blocking(executor):
     print('here')
     loop = asyncio.get_event_loop()
-    procs = [loop.run_in_executor(executor, blocking, n) for n in range(100)]
+    procs = [loop.run_in_executor(executor, blocking, n) for n in range(200)]
 
     # results are stored as they complete
     # completed, _ = await asyncio.wait(procs)
@@ -32,14 +34,17 @@ def main():
     #executor = ProcessPoolExecutor(max_workers=None)
 
     # for i/o intensive tasks
-    executor = ThreadPoolExecutor(max_workers=100)
+
+    executor = ThreadPoolExecutor(max_workers=50)
 
     loop = asyncio.get_event_loop()
+    s = time.perf_counter()
     try:
         result = loop.run_until_complete(run_blocking(executor))
     finally:
         loop.close()
     print(f'{result}')
+    print(f'done in {time.perf_counter()-s} seconds')
 
 
 if __name__ == '__main__':
